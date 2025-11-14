@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Profile - LIMKOKWING UNIVERSITY</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    .profile-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 2rem 0;
+    }
+
+    .profile-card {
+      background: white;
+      border-radius: 10px;
+      padding: 2rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .profile-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: white;
+      margin: 0 auto 1rem;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    .profile-avatar:hover {
+      transform: scale(1.05);
+    }
+
+    .profile-header h2 {
+      margin: 1rem 0 0.5rem;
+      color: #2c3e50;
+    }
+
+    .profile-header p {
+      color: #7f8c8d;
+      margin: 0;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #e1e8ed;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    .form-group input:read-only {
+      background-color: #f8f9fa;
+      color: #6c757d;
+      cursor: not-allowed;
+    }
+
+    .form-group small {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.8rem;
+    }
+
+    .form-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .btn-primary, .btn-secondary {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+
+    .btn-primary {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #c0392b;
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6268;
+      transform: translateY(-2px);
+    }
+
+    .form-clear-indicator {
+      text-align: center;
+      margin-top: 1rem;
+      padding: 0.5rem;
+      background: #f8f9fa;
+      border-radius: 4px;
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+
+    /* Alert Styles */
+    .custom-alert {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      border-radius: 5px;
+      color: white;
+      font-weight: bold;
+      z-index: 1000;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: slideIn 0.3s ease;
+    }
+
+    .alert-success {
+      background-color: #28a745;
+    }
+
+    .alert-error {
+      background-color: #dc3545;
+    }
+
+    .alert-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alert-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .profile-container {
+        padding: 1rem;
+      }
+      
+      .profile-card {
+        padding: 1.5rem;
+      }
+      
+      .form-buttons {
+        flex-direction: column;
+      }
+      
+      .profile-avatar {
+        width: 80px;
+        height: 80px;
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+        <div class="header-top">
+            <div class="logo">
+                <div class="logo-box">
+                    <span>LUCT</span>
+                </div>
+                <div class="logo-text">
+                    <h1>LIMKOKWING UNIVERSITY</h1>
+                    <p>OF CREATIVE TECHNOLOGY - LESOTHO</p>
+                </div>
+            </div>
+            <div class="header-info">
+                <p><a href="contact.html">Contact Us</a></p>
+            </div>
+            
+            <!-- Hamburger Button -->
+            <button class="hamburger-btn" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        
+        <nav>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="student-dashboard.html">Dashboard</a></li>
+                <li><a href="profile.html" class="active">Edit Profile</a></li>
+                <li><a href="#" onclick="logout()">Logout</a></li>
+            </ul>
+        </nav>
+    </div>
+  </header>
+
+  <!-- Profile Edit Section -->
+  <section class="auth">
+    <div class="container">
+      <div class="profile-container">
+        <div class="profile-card">
+          <div class="profile-header">
+            <div class="profile-avatar" id="profileAvatar" onclick="document.getElementById('profilePicInput').click()">
+              <!-- Avatar will be filled with profile picture or initial -->
+            </div>
+            <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
+            <button type="button" onclick="document.getElementById('profilePicInput').click()" class="btn-secondary" style="margin: 0.5rem 0;">
+              Change Profile Picture
+            </button>
+            <h2>Edit Your Profile</h2>
+            <p>Update your personal information</p>
+          </div>
+
+          <form id="profileForm" autocomplete="off">
+            <div class="form-group">
+              <label for="profileName">Full Name:</label>
+              <input type="text" id="profileName" required placeholder="Enter your full name" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+              <label for="profileEmail">Email:</label>
+              <input type="email" id="profileEmail" required placeholder="Enter your email" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+              <label for="profileUsername">Username:</label>
+              <input type="text" id="profileUsername" readonly disabled autocomplete="off">
+              <small style="color: #666;">Username cannot be changed</small>
+            </div>
+
+            <div class="form-group">
+              <label for="profileCourse">Course:</label>
+              <select id="profileCourse" required autocomplete="off">
+                <option value="">Select Your Course</option>
+                <option value="bscbit">BSCBIT</option>
+                <option value="bscit">BSCIT</option>
+                <option value="bscsm">BSCSM</option>
+                <option value="dit">DIT</option>
+                <option value="dbit">DBIT</option>
+                <option value="dmse">DMSE</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="profilePhone">Phone Number:</label>
+              <input type="tel" id="profilePhone" placeholder="Enter your phone number (e.g., +266 50123456)" autocomplete="off">
+              <small style="color: #666;">Lesotho format: +266 5XXXXXXX or +266 6XXXXXXX</small>
+            </div>
+
+            <hr style="margin: 2rem 0; border: none; border-top: 1px solid #e0e0e0;">
+
+            <h3>Change Password (Optional)</h3>
+            
+            <div class="form-group">
+              <label for="currentPassword">Current Password:</label>
+              <input type="password" id="currentPassword" placeholder="Enter current password" autocomplete="new-password">
+            </div>
+
+            <div class="form-group">
+              <label for="newPassword">New Password:</label>
+              <input type="password" id="newPassword" placeholder="Enter new password (min 6 characters)" autocomplete="new-password">
+            </div>
+
+            <div class="form-group">
+              <label for="confirmPassword">Confirm New Password:</label>
+              <input type="password" id="confirmPassword" placeholder="Confirm new password" autocomplete="new-password">
+            </div>
+
+            <div class="form-buttons">
+              <button type="button" onclick="updateProfile()" class="btn-primary">Update Profile</button>
+              <a href="student-dashboard.html" class="btn-secondary">Cancel</a>
+            </div>
+            <div class="form-clear-indicator">
+              Forms are cleared for security when switching pages
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // =============================================
+    // FIREBASE CONFIGURATION
+    // =============================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBe857kGYoLQJxmLFpUcPS8jZtWxkFYBlk",
+      authDomain: "onlineexam-99eb5.firebaseapp.com",
+      projectId: "onlineexam-99eb5",
+      storageBucket: "onlineexam-99eb5.firebasestorage.app",
+      messagingSenderId: "474888464500",
+      appId: "1:474888464500:web:7414d4dbd34e4a88898921"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+
+    // =============================================
+    // AUTHENTICATION CHECK
+    // =============================================
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        if (!currentUser) {
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          if (userDoc.exists) {
+            currentUser = { uid: user.uid, ...userDoc.data() };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Check if user is student
+            if (currentUser.role !== 'student') {
+              showAlert('Access denied. Student accounts only.', 'error');
+              await auth.signOut();
+              window.location.href = 'student.html';
+              return;
+            }
+            
+            loadProfileData();
+          }
+        } else {
+          // Check if user is student
+          if (currentUser.role !== 'student') {
+            showAlert('Access denied. Student accounts only.', 'error');
+            await auth.signOut();
+            window.location.href = 'student.html';
+            return;
+          }
+          loadProfileData();
+        }
+      } else {
+        window.location.href = 'student.html';
+      }
+    });
+
+    // =============================================
+    // PROFILE FUNCTIONS
+    // =============================================
+    function loadProfileData() {
+      if (!currentUser) return;
+
+      // Populate form fields with current user data
+      document.getElementById('profileName').value = currentUser.name || '';
+      document.getElementById('profileEmail').value = currentUser.email || '';
+      document.getElementById('profileUsername').value = currentUser.username || '';
+      document.getElementById('profilePhone').value = currentUser.phone || '';
+      
+      // Set course if available
+      if (currentUser.course) {
+        document.getElementById('profileCourse').value = currentUser.course;
+      }
+      
+      // Set profile avatar
+      const profileAvatar = document.getElementById('profileAvatar');
+      if (currentUser.name) {
+        profileAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+      } else if (currentUser.username) {
+        profileAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+      } else {
+        profileAvatar.textContent = 'S';
+      }
+      
+      // Setup hamburger menu
+      setupHamburgerMenu();
+    }
+
+    async function updateProfile() {
+      const name = document.getElementById('profileName').value;
+      const email = document.getElementById('profileEmail').value;
+      const course = document.getElementById('profileCourse').value;
+      const phone = document.getElementById('profilePhone').value;
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      
+      // Basic validation
+      if (!name || !email || !course) {
+        showAlert('Please fill in all required fields', 'error');
+        return;
+      }
+      
+      // Email validation
+      if (!email.includes('@')) {
+        showAlert('Please enter a valid email address', 'error');
+        return;
+      }
+      
+      // Phone validation (optional but if provided, validate format)
+      if (phone && !isValidPhoneNumber(phone)) {
+        showAlert('Please enter a valid Lesotho phone number (+266 5XXXXXXX or +266 6XXXXXXX)', 'error');
+        return;
+      }
+      
+      // Password change validation
+      if (currentPassword || newPassword || confirmPassword) {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          showAlert('Please fill in all password fields to change your password', 'error');
+          return;
+        }
+        
+        if (newPassword.length < 6) {
+          showAlert('New password must be at least 6 characters', 'error');
+          return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+          showAlert('New passwords do not match', 'error');
+          return;
+        }
+      }
+
+      try {
+        // Update profile in Firestore
+        await db.collection('users').doc(currentUser.uid).update({
+          name: name,
+          email: email,
+          course: course,
+          phone: phone || '',
+          updatedAt: new Date().toISOString()
+        });
+        
+        // Update email in Firebase Auth if changed
+        if (email !== currentUser.email) {
+          await auth.currentUser.updateEmail(email);
+        }
+        
+        // Update password if provided
+        if (currentPassword && newPassword) {
+          try {
+            // Re-authenticate user before changing password
+            const credential = firebase.auth.EmailAuthProvider.credential(
+              auth.currentUser.email, 
+              currentPassword
+            );
+            
+            await auth.currentUser.reauthenticateWithCredential(credential);
+            await auth.currentUser.updatePassword(newPassword);
+          } catch (error) {
+            console.error('Password update error:', error);
+            if (error.code === 'auth/wrong-password') {
+              showAlert('Current password is incorrect', 'error');
+              return;
+            }
+            throw error;
+          }
+        }
+        
+        // Update local storage
+        currentUser.name = name;
+        currentUser.email = email;
+        currentUser.course = course;
+        currentUser.phone = phone;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        showAlert('Profile updated successfully!', 'success');
+        
+        // Clear password fields
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+        
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        let errorMessage = 'Profile update failed. ';
+        
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage += 'Email already in use by another account.';
+            break;
+          case 'auth/requires-recent-login':
+            errorMessage += 'Please log in again to change your email.';
+            break;
+          case 'auth/weak-password':
+            errorMessage += 'New password is too weak.';
+            break;
+          default:
+            errorMessage += error.message;
+        }
+        
+        showAlert(errorMessage, 'error');
+      }
+    }
+
+    function isValidPhoneNumber(phone) {
+      // Basic Lesotho phone number validation
+      const phoneRegex = /^\+266\s[56]\d{7}$/;
+      return phoneRegex.test(phone);
+    }
+
+    // =============================================
+    // UTILITY FUNCTIONS
+    // =============================================
+    function showAlert(message, type) {
+      // Remove existing alerts
+      const existingAlert = document.querySelector('.custom-alert');
+      if (existingAlert) {
+        existingAlert.remove();
+      }
+
+      const alert = document.createElement('div');
+      alert.className = `custom-alert alert-${type}`;
+      alert.innerHTML = `
+        <div class="alert-content">
+          <span class="alert-message">${message}</span>
+          <button class="alert-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+      `;
+      
+      document.body.appendChild(alert);
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        if (alert.parentNode) {
+          alert.remove();
+        }
+      }, 5000);
+    }
+
+    function setupHamburgerMenu() {
+      const hamburgerBtn = document.querySelector('.hamburger-btn');
+      const navMenu = document.querySelector('.nav-menu');
+      
+      if (hamburgerBtn && navMenu) {
+        hamburgerBtn.addEventListener('click', () => {
+          navMenu.classList.toggle('active');
+          hamburgerBtn.classList.toggle('active');
+        });
+      }
+    }
+
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        auth.signOut().then(() => {
+          localStorage.removeItem('currentUser');
+          window.location.href = 'student.html';
+        }).catch(error => {
+          console.error('Error signing out:', error);
+          showAlert('Error signing out: ' + error.message, 'error');
+        });
+      }
+    }
+
+    // Profile picture upload functionality (placeholder)
+    document.getElementById('profilePicInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        // In a real application, you would upload the file to Firebase Storage
+        // For now, we'll just show a success message
+        showAlert('Profile picture updated successfully!', 'success');
+        
+        // You can add Firebase Storage upload code here:
+        /*
+        const storageRef = firebase.storage().ref();
+        const profilePicRef = storageRef.child(`profile-pictures/${currentUser.uid}`);
+        
+        profilePicRef.put(file).then((snapshot) => {
+          return snapshot.ref.getDownloadURL();
+        }).then((downloadURL) => {
+          // Update user document with new profile picture URL
+          return db.collection('users').doc(currentUser.uid).update({
+            profilePicture: downloadURL
+          });
+        }).then(() => {
+          showAlert('Profile picture updated successfully!', 'success');
+        }).catch((error) => {
+          console.error('Error uploading profile picture:', error);
+          showAlert('Error uploading profile picture', 'error');
+        });
+        */
+      }
+    });
+
+  </script>
+</body>
+</html>

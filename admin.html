@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal - LIMKOKWING UNIVERSITY</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+        <div class="header-top">
+            <div class="logo">
+                <div class="logo-box">
+                    <span>LUCT</span>
+                </div>
+                <div class="logo-text">
+                    <h1>LIMKOKWING UNIVERSITY</h1>
+                    <p>OF CREATIVE TECHNOLOGY - LESOTHO</p>
+                </div>
+            </div>
+            <div class="header-info">
+                <p>B/DIWD – Principles of Web Design</p>
+                <p><a href="contact.html">Contact Us</a></p>
+            </div>
+            
+            <!-- Hamburger Button -->
+            <button class="hamburger-btn" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        
+        <nav>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="admin.html" class="active">Admin</a></li>
+                <li><a href="examiner.html">Examiner</a></li>
+                <li><a href="student.html">Student</a></li>
+            </ul>
+        </nav>
+    </div>
+  </header>
+
+  <!-- Admin Portal -->
+  <section class="auth">
+    <div class="container">
+      <div class="auth-container">
+        <!-- Login Form -->
+        <div class="form-section" id="adminLoginSection">
+          <h2>Admin Login</h2>
+          <p style="text-align: center; margin-bottom: 2rem; color: #666;">
+            Access the administration panel
+          </p>
+          <form id="adminLoginForm">
+            <div class="form-group">
+              <label for="adminEmail">Email:</label>
+              <input type="email" id="adminEmail" required placeholder="Enter your registered email">
+            </div>
+            <div class="form-group">
+              <label for="adminPassword">Password:</label>
+              <input type="password" id="adminPassword" required placeholder="Enter your password">
+            </div>
+            <div class="form-buttons">
+              <button type="submit" class="btn-primary">Login as Admin</button>
+              <button type="button" id="showAdminRegister" class="btn-secondary">Register as Admin</button>
+              <a href="index.html" class="btn-secondary" style="text-decoration: none; text-align: center;">Back to Home</a>
+            </div>
+            <div class="forgot-password">
+              <a href="#" onclick="showForgotPassword()">Forgot Password?</a>
+            </div>
+          </form>
+        </div>
+
+        <!-- Registration Form -->
+        <div class="form-section" id="adminRegisterSection" style="display:none;">
+          <h2>Admin Registration</h2>
+          <p style="text-align: center; margin-bottom: 2rem; color: #666;">
+            Create new admin account
+          </p>
+          <form id="adminRegisterForm">
+            <div class="form-group">
+              <label for="regAdminName">Full Name:</label>
+              <input type="text" id="regAdminName" required placeholder="Enter your full name">
+            </div>
+            <div class="form-group">
+              <label for="regAdminEmail">Email:</label>
+              <input type="email" id="regAdminEmail" required placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+              <label for="regAdminUsername">Username:</label>
+              <input type="text" id="regAdminUsername" required placeholder="Choose a username">
+            </div>
+            <div class="form-group">
+              <label for="regAdminPassword">Password:</label>
+              <input type="password" id="regAdminPassword" required placeholder="Create a password (min 6 characters)">
+            </div>
+            <div class="form-group">
+              <label for="regAdminConfirmPassword">Confirm Password:</label>
+              <input type="password" id="regAdminConfirmPassword" required placeholder="Confirm your password">
+            </div>
+            <div class="form-group">
+              <label for="regAdminPhone">Phone Number:</label>
+              <input type="tel" id="regAdminPhone" placeholder="Enter your phone number">
+            </div>
+            <div class="form-buttons">
+              <button type="submit" class="btn-primary">Register as Admin</button>
+              <button type="button" id="backToAdminLogin" class="btn-secondary">Back to Login</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // =============================================
+    // FIREBASE CONFIGURATION
+    // =============================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBe857kGYoLQJxmLFpUcPS8jZtWxkFYBlk",
+      authDomain: "onlineexam-99eb5.firebaseapp.com",
+      projectId: "onlineexam-99eb5",
+      storageBucket: "onlineexam-99eb5.firebasestorage.app",
+      messagingSenderId: "474888464500",
+      appId: "1:474888464500:web:7414d4dbd34e4a88898921"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Remove any existing currentUser from localStorage when page loads
+    localStorage.removeItem('currentUser');
+
+    // =============================================
+    // AUTHENTICATION FUNCTIONS
+    // =============================================
+    document.addEventListener('DOMContentLoaded', function() {
+      // Tab switching
+      document.getElementById('showAdminRegister').addEventListener('click', showAdminRegister);
+      document.getElementById('backToAdminLogin').addEventListener('click', showAdminLogin);
+
+      // Form submissions
+      document.getElementById('adminLoginForm').addEventListener('submit', loginAdmin);
+      document.getElementById('adminRegisterForm').addEventListener('submit', registerAdmin);
+
+      // Setup hamburger menu
+      setupHamburgerMenu();
+    });
+
+    function showAdminRegister() {
+      document.getElementById('adminLoginSection').style.display = 'none';
+      document.getElementById('adminRegisterSection').style.display = 'block';
+    }
+
+    function showAdminLogin() {
+      document.getElementById('adminRegisterSection').style.display = 'none';
+      document.getElementById('adminLoginSection').style.display = 'block';
+    }
+
+    async function loginAdmin(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('adminEmail').value;
+      const password = document.getElementById('adminPassword').value;
+      
+      if (!email || !password) {
+        showAlert('Please fill in all fields', 'error');
+        return;
+      }
+
+      try {
+        console.log('Attempting login with:', email);
+        
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        console.log('Firebase auth successful, checking user role...');
+        
+        // Get user data from Firestore
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          console.log('User data found:', userData);
+          
+          // Check if user is an admin
+          if (userData.role !== 'admin') {
+            showAlert('Access denied. Admin accounts only.', 'error');
+            await auth.signOut();
+            return;
+          }
+          
+          // Store user data and redirect
+          localStorage.setItem('currentUser', JSON.stringify({
+            uid: user.uid,
+            ...userData
+          }));
+          
+          showAlert('Admin login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = 'admin-dashboard.html';
+          }, 1000);
+        } else {
+          console.log('User document not found in Firestore');
+          showAlert('Admin account not found in system.', 'error');
+          await auth.signOut();
+        }
+        
+      } catch (error) {
+        console.error('Login error:', error);
+        let errorMessage = 'Login failed. ';
+        
+        switch (error.code) {
+          case 'auth/user-not-found':
+            errorMessage += 'No admin account found with this email.';
+            break;
+          case 'auth/wrong-password':
+            errorMessage += 'Invalid password.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage += 'Invalid email format.';
+            break;
+          case 'auth/invalid-credential':
+            errorMessage += 'Invalid email or password.';
+            break;
+          default:
+            errorMessage += error.message;
+        }
+        
+        showAlert(errorMessage, 'error');
+      }
+    }
+
+    async function registerAdmin(e) {
+      e.preventDefault();
+      
+      const name = document.getElementById('regAdminName').value;
+      const email = document.getElementById('regAdminEmail').value;
+      const username = document.getElementById('regAdminUsername').value;
+      const password = document.getElementById('regAdminPassword').value;
+      const confirmPassword = document.getElementById('regAdminConfirmPassword').value;
+      const phone = document.getElementById('regAdminPhone').value;
+      
+      // Validation
+      if (!name || !email || !username || !password || !confirmPassword) {
+        showAlert('Please fill in all required fields', 'error');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        showAlert('Passwords do not match', 'error');
+        return;
+      }
+      
+      if (password.length < 6) {
+        showAlert('Password must be at least 6 characters', 'error');
+        return;
+      }
+
+      if (!email.includes('@')) {
+        showAlert('Please enter a valid email address', 'error');
+        return;
+      }
+
+      try {
+        // Check if username already exists
+        const usernameSnapshot = await db.collection('users')
+          .where('username', '==', username)
+          .get();
+        
+        if (!usernameSnapshot.empty) {
+          showAlert('Username already exists. Please choose a different username.', 'error');
+          return;
+        }
+
+        // Check if email already exists
+        const emailSnapshot = await db.collection('users')
+          .where('email', '==', email)
+          .get();
+        
+        if (!emailSnapshot.empty) {
+          showAlert('Email already registered. Please use a different email.', 'error');
+          return;
+        }
+
+        console.log('Creating admin account with email:', email);
+        
+        // Create user in Firebase Auth
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        console.log('Firebase auth user created:', user.uid);
+        
+        // Store additional user data in Firestore
+        await db.collection('users').doc(user.uid).set({
+          name: name,
+          username: username,
+          email: email,
+          phone: phone || '',
+          role: 'admin',
+          createdAt: new Date().toISOString(),
+          isActive: true,
+          lastLogin: new Date().toISOString()
+        });
+        
+        console.log('User data saved to Firestore');
+        
+        // Store user data locally and redirect
+        localStorage.setItem('currentUser', JSON.stringify({
+          uid: user.uid,
+          name: name,
+          username: username,
+          email: email,
+          phone: phone || '',
+          role: 'admin'
+        }));
+        
+        showAlert('Admin account created successfully! Redirecting to dashboard...', 'success');
+        setTimeout(() => {
+          window.location.href = 'admin-dashboard.html';
+        }, 1500);
+        
+      } catch (error) {
+        console.error('Registration error:', error);
+        let errorMessage = 'Registration failed. ';
+        
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage += 'Email already registered in authentication system.';
+            break;
+          case 'auth/weak-password':
+            errorMessage += 'Password is too weak.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage += 'Invalid email address.';
+            break;
+          case 'auth/operation-not-allowed':
+            errorMessage += 'Operation not allowed.';
+            break;
+          default:
+            errorMessage += error.message;
+        }
+        
+        showAlert(errorMessage, 'error');
+      }
+    }
+
+    function showForgotPassword() {
+      const email = prompt('Please enter your admin email address:');
+      if (email) {
+        auth.sendPasswordResetEmail(email)
+          .then(() => {
+            showAlert('Password reset email sent! Check your inbox.', 'success');
+          })
+          .catch(error => {
+            console.error('Password reset error:', error);
+            showAlert('Error sending reset email: ' + error.message, 'error');
+          });
+      }
+    }
+
+    function showAlert(message, type) {
+      // Remove existing alerts
+      const existingAlert = document.querySelector('.custom-alert');
+      if (existingAlert) {
+        existingAlert.remove();
+      }
+
+      const alert = document.createElement('div');
+      alert.className = `custom-alert alert-${type}`;
+      alert.innerHTML = `
+        <div class="alert-content">
+          <span class="alert-message">${message}</span>
+          <button class="alert-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+      `;
+      
+      alert.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+        z-index: 1000;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        ${type === 'success' ? 'background-color: #28a745;' : 'background-color: #dc3545;'}
+      `;
+
+      const alertContent = alert.querySelector('.alert-content');
+      alertContent.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      `;
+
+      const alertClose = alert.querySelector('.alert-close');
+      alertClose.style.cssText = `
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        margin-left: 10px;
+      `;
+      
+      document.body.appendChild(alert);
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        if (alert.parentNode) {
+          alert.remove();
+        }
+      }, 5000);
+    }
+
+    function setupHamburgerMenu() {
+      const hamburgerBtn = document.querySelector('.hamburger-btn');
+      const navMenu = document.querySelector('.nav-menu');
+      
+      if (hamburgerBtn && navMenu) {
+        hamburgerBtn.addEventListener('click', () => {
+          navMenu.classList.toggle('active');
+          hamburgerBtn.classList.toggle('active');
+        });
+      }
+    }
+
+  </script>
+
+  <style>
+    .custom-alert {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      border-radius: 5px;
+      color: white;
+      font-weight: bold;
+      z-index: 1000;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: slideIn 0.3s ease;
+    }
+
+    .alert-success {
+      background-color: #28a745;
+    }
+
+    .alert-error {
+      background-color: #dc3545;
+    }
+
+    .alert-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alert-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .form-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .forgot-password {
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .forgot-password a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .forgot-password a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .form-buttons {
+        gap: 0.75rem;
+      }
+    }
+  </style>
+</body>
+</html>

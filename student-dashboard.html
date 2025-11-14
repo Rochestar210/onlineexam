@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - LIMKOKWING UNIVERSITY</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <header>
+    <div class="container">
+        <div class="header-top">
+            <div class="logo">
+                <div class="logo-box"><span>LUCT</span></div>
+                <div class="logo-text">
+                    <h1>LIMKOKWING UNIVERSITY</h1>
+                    <p>OF CREATIVE TECHNOLOGY - LESOTHO</p>
+                </div>
+            </div>
+            <div class="header-info">
+                <p><a href="contact.html">Contact Us</a></p>
+            </div>
+            <button class="hamburger-btn" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+        <nav>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="student-dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="profile.html">My Profile</a></li>
+                <li><a href="#" onclick="logout()">Logout</a></li>
+            </ul>
+        </nav>
+    </div>
+  </header>
+
+  <section class="dashboard">
+    <div class="container">
+      <div class="dashboard-header">
+        <h1 id="studentWelcome">Student Dashboard</h1>
+        <p>Course: <span id="studentCourse"></span></p>
+      </div>
+
+      <div class="dashboard-content">
+        <!-- Profile Card -->
+        <div class="card">
+          <h2>👤 Your Profile</h2>
+          <div class="profile-info">
+            <div class="profile-avatar-large">
+              <span id="avatarInitial">S</span>
+            </div>
+            <div class="profile-details">
+              <p><strong>Name:</strong> <span id="profileName">-</span></p>
+              <p><strong>Username:</strong> <span id="profileUsername">-</span></p>
+              <p><strong>Email:</strong> <span id="profileEmail">-</span></p>
+              <p><strong>Course:</strong> <span id="profileCourse">-</span></p>
+              <p><strong>Student ID:</strong> <span id="profileStudentId">-</span></p>
+              <p><strong>Member Since:</strong> <span id="memberSince">-</span></p>
+            </div>
+          </div>
+          <a href="profile.html" class="btn-secondary" style="text-decoration: none; text-align: center; display: block; margin-top: 1rem;">
+            ✏️ Edit Profile
+          </a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card">
+          <h2>📊 Quick Stats</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>Available Exams</h3>
+              <p id="availableExams">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Exams Taken</h3>
+              <p id="examsTaken">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Average Score</h3>
+              <p id="averageScore">0%</p>
+            </div>
+            <div class="stat-card">
+              <h3>Pass Rate</h3>
+              <p id="passRate">0%</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Available Exams -->
+        <div class="card">
+          <h2>📝 Available Exams</h2>
+          <div id="examOverview">
+            <div class="loading">Loading available exams...</div>
+          </div>
+        </div>
+
+        <!-- Recent Results -->
+        <div class="card">
+          <h2>📈 Recent Results</h2>
+          <div id="recentResults">
+            <div class="loading">Loading your results...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exam Section (hidden by default) -->
+      <section id="examSection" style="display:none;"></section>
+
+      <!-- Review Section (hidden by default) -->
+      <section id="reviewSection" style="display:none;"></section>
+
+      <div class="dashboard-footer">
+        <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // =============================================
+    // FIREBASE CONFIGURATION
+    // =============================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBe857kGYoLQJxmLFpUcPS8jZtWxkFYBlk",
+      authDomain: "onlineexam-99eb5.firebaseapp.com",
+      projectId: "onlineexam-99eb5",
+      storageBucket: "onlineexam-99eb5.firebasestorage.app",
+      messagingSenderId: "474888464500",
+      appId: "1:474888464500:web:7414d4dbd34e4a88898921"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+
+    // =============================================
+    // AUTHENTICATION CHECK
+    // =============================================
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        if (!currentUser) {
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          if (userDoc.exists) {
+            currentUser = { uid: user.uid, ...userDoc.data() };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            loadDashboard();
+          }
+        } else {
+          loadDashboard();
+        }
+      } else {
+        window.location.href = 'student.html';
+      }
+    });
+
+    // =============================================
+    // DASHBOARD FUNCTIONS
+    // =============================================
+    function loadDashboard() {
+      loadProfileInfo();
+      loadExamsAndStats();
+      setupHamburgerMenu();
+    }
+
+    function loadProfileInfo() {
+      if (!currentUser) return;
+
+      document.getElementById('studentWelcome').textContent = `Welcome, ${currentUser.name || currentUser.username}`;
+      document.getElementById('studentCourse').textContent = currentUser.course || 'Not specified';
+
+      document.getElementById('profileName').textContent = currentUser.name || 'Not provided';
+      document.getElementById('profileUsername').textContent = currentUser.username;
+      document.getElementById('profileEmail').textContent = currentUser.email || 'Not provided';
+      document.getElementById('profileCourse').textContent = currentUser.course || 'Not specified';
+      document.getElementById('profileStudentId').textContent = currentUser.uid.substring(0, 8).toUpperCase();
+      
+      const avatarInitial = document.getElementById('avatarInitial');
+      if (currentUser.name) {
+        avatarInitial.textContent = currentUser.name.charAt(0).toUpperCase();
+      }
+
+      if (currentUser.registrationDate) {
+        const regDate = new Date(currentUser.registrationDate);
+        document.getElementById('memberSince').textContent = regDate.toLocaleDateString();
+      } else {
+        document.getElementById('memberSince').textContent = 'Recently';
+      }
+    }
+
+    async function loadExamsAndStats() {
+      try {
+        console.log('Loading real exams from Firebase...');
+        
+        // Get ONLY real exams from Firebase (created by examiners)
+        const exams = await getAllExams();
+        const results = await getStudentResults(currentUser.username);
+
+        console.log(`Found ${exams.length} exams in database`);
+        console.log(`Found ${results.length} results in database`);
+
+        updateQuickStats(exams, results);
+        displayExams(exams, results);
+        displayRecentResults(results);
+
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        showAlert('Error loading dashboard data', 'error');
+      }
+    }
+
+    // =============================================
+    // FIREBASE DATA FUNCTIONS (REAL DATA ONLY)
+    // =============================================
+    async function getAllExams() {
+      try {
+        // Get only active exams from Firebase (created by examiners)
+        const snapshot = await db.collection('exams')
+          .where('isActive', '==', true)
+          .get();
+        
+        const exams = [];
+        snapshot.forEach(doc => {
+          exams.push({ id: doc.id, ...doc.data() });
+        });
+        
+        return exams;
+      } catch (error) {
+        console.error('Error getting exams:', error);
+        return [];
+      }
+    }
+
+    async function getStudentResults(studentUsername) {
+      try {
+        const snapshot = await db.collection('results')
+          .where('studentUsername', '==', studentUsername)
+          .get();
+        
+        const results = [];
+        snapshot.forEach(doc => {
+          results.push({ id: doc.id, ...doc.data() });
+        });
+        
+        return results;
+      } catch (error) {
+        console.error('Error getting results:', error);
+        return [];
+      }
+    }
+
+    function updateQuickStats(exams, results) {
+      // Available exams (not taken yet)
+      const availableExams = exams.filter(exam => 
+        !results.some(result => result.examId === exam.id)
+      );
+      
+      // Calculate average score
+      const totalScore = results.reduce((sum, result) => sum + result.score, 0);
+      const averageScore = results.length > 0 ? Math.round(totalScore / results.length) : 0;
+      
+      // Calculate pass rate
+      const passedExams = results.filter(result => result.status === 'Passed').length;
+      const passRate = results.length > 0 ? Math.round((passedExams / results.length) * 100) : 0;
+
+      // Update stats
+      document.getElementById('availableExams').textContent = availableExams.length;
+      document.getElementById('examsTaken').textContent = results.length;
+      document.getElementById('averageScore').textContent = averageScore + '%';
+      document.getElementById('passRate').textContent = passRate + '%';
+    }
+
+    function displayExams(exams, results) {
+      const examOverview = document.getElementById('examOverview');
+      
+      if (exams.length === 0) {
+        examOverview.innerHTML = `
+          <div class="no-exams">
+            <p>📭 No Exams Available</p>
+            <p><small>Your examiners haven't created any exams yet. Exams will appear here when they are created.</small></p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '<div class="exams-grid">';
+      
+      exams.forEach(exam => {
+        const result = results.find(r => r.examId === exam.id);
+        const status = result ? 'completed' : 'available';
+        
+        html += `
+          <div class="exam-card ${status}">
+            <h3>${exam.title}</h3>
+            <div class="exam-details">
+              <p><strong>Subject:</strong> ${formatSubject(exam.subject)}</p>
+              <p><strong>Duration:</strong> ${exam.duration} minutes</p>
+              <p><strong>Questions:</strong> ${exam.questions ? exam.questions.length : 0}</p>
+              <p><strong>Date:</strong> ${exam.date}</p>
+              <p><strong>Examiner:</strong> ${exam.examiner || 'System'}</p>
+            </div>
+            <div class="exam-status">
+              ${result ? 
+                `<span class="status-badge completed">Completed (${result.score}%)</span>
+                 <button class="btn-secondary" onclick="reviewExam('${exam.id}')">Review Answers</button>` :
+                `<span class="status-badge available">Available</span>
+                 <button class="btn-primary" onclick="startExam('${exam.id}')">Take Exam</button>`
+              }
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      examOverview.innerHTML = html;
+    }
+
+    function displayRecentResults(results) {
+      const recentResults = document.getElementById('recentResults');
+      const sortedResults = results.sort((a, b) => 
+        new Date(b.submittedAt || b.date) - new Date(a.submittedAt || a.date)
+      ).slice(0, 5);
+
+      if (sortedResults.length === 0) {
+        recentResults.innerHTML = `
+          <div class="no-results">
+            <p>📊 No Exam Results Yet</p>
+            <p><small>When you take exams, your results will appear here.</small></p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '<div class="results-list">';
+      sortedResults.forEach(result => {
+        html += `
+          <div class="result-item ${result.status.toLowerCase()}">
+            <div class="result-header">
+              <strong>${result.title}</strong>
+              <span class="score ${result.status.toLowerCase()}">${result.score}%</span>
+            </div>
+            <div class="result-details">
+              <span>${formatSubject(result.subject)}</span>
+              <span>${result.date}</span>
+              <span class="status">${result.status}</span>
+            </div>
+            <div class="result-stats">
+              ${result.correct}/${result.total} correct answers
+            </div>
+            <div class="result-actions">
+              <button class="btn-small" onclick="reviewExam('${result.examId}')">Review Answers</button>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      recentResults.innerHTML = html;
+    }
+
+    function formatSubject(subject) {
+      if (!subject) return 'General';
+      return subject.split('-').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+    }
+
+    // =============================================
+    // EXAM FUNCTIONS
+    // =============================================
+    async function startExam(examId) {
+      try {
+        const examDoc = await db.collection('exams').doc(examId).get();
+        if (!examDoc.exists) {
+          showAlert('Exam not found!', 'error');
+          return;
+        }
+
+        const exam = { id: examDoc.id, ...examDoc.data() };
+        
+        if (!exam.questions || exam.questions.length === 0) {
+          showAlert('This exam has no questions yet.', 'error');
+          return;
+        }
+        
+        if (!confirm(`Start "${exam.title}"? You will have ${exam.duration} minutes.`)) return;
+
+        let examHTML = `
+          <div class="exam-header">
+            <h2>${formatSubject(exam.subject)} - ${exam.title}</h2>
+            <p>Duration: ${exam.duration} minutes | Questions: ${exam.questions.length}</p>
+            <div class="timer" id="timer">⏰ Time remaining: ${exam.duration}:00</div>
+          </div>
+          <form id="examForm">
+        `;
+
+        exam.questions.forEach((q, index) => {
+          examHTML += `
+            <div class="question-block">
+              <div class="question-text">
+                <strong>Question ${index + 1}:</strong> ${q.question}
+              </div>
+              <div class="options-list">
+                ${q.options.map(option => `
+                  <label class="option-label">
+                    <input type="radio" name="q${index}" value="${option}" required>
+                    <span class="option-text">${option}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        });
+
+        examHTML += `
+          <button type="submit" class="btn-primary">Submit Exam</button>
+          </form>
+        `;
+
+        document.getElementById('examSection').innerHTML = examHTML;
+        document.getElementById('examSection').style.display = 'block';
+        document.getElementById('examSection').scrollIntoView({ behavior: 'smooth' });
+
+        startTimer(exam.duration, exam);
+
+        document.getElementById('examForm').onsubmit = (e) => {
+          e.preventDefault();
+          submitExam(exam);
+        };
+
+      } catch (error) {
+        showAlert('Error loading exam: ' + error.message, 'error');
+      }
+    }
+
+    let examTimer;
+    function startTimer(minutes, exam) {
+      let time = minutes * 60;
+      const timerElement = document.getElementById('timer');
+      
+      examTimer = setInterval(() => {
+        const mins = Math.floor(time / 60);
+        const secs = time % 60;
+        timerElement.textContent = `⏰ Time remaining: ${mins}:${secs.toString().padStart(2, '0')}`;
+        
+        if (time <= 0) {
+          clearInterval(examTimer);
+          showAlert('Time is up! Submitting your exam...', 'error');
+          submitExam(exam);
+        }
+        time--;
+      }, 1000);
+    }
+
+    async function submitExam(exam) {
+      clearInterval(examTimer);
+      
+      try {
+        const form = document.getElementById('examForm');
+        let score = 0;
+        const userAnswers = [];
+
+        exam.questions.forEach((q, index) => {
+          const selected = form.querySelector(`input[name="q${index}"]:checked`);
+          const answer = selected ? selected.value : 'Not answered';
+          userAnswers.push(answer);
+          
+          if (answer === q.answer) {
+            score++;
+          }
+        });
+
+        const percentage = Math.round((score / exam.questions.length) * 100);
+        const status = percentage >= 50 ? 'Passed' : 'Failed';
+
+        // Save result to Firebase
+        await db.collection('results').add({
+          studentUsername: currentUser.username,
+          examId: exam.id,
+          subject: exam.subject,
+          title: exam.title,
+          score: percentage,
+          status: status,
+          correct: score,
+          total: exam.questions.length,
+          answers: userAnswers,
+          date: new Date().toLocaleDateString(),
+          time: new Date().toLocaleTimeString(),
+          submittedAt: new Date().toISOString()
+        });
+
+        // Show results
+        showExamResults(exam, percentage, score, status);
+        
+        // Reload dashboard data after 3 seconds
+        setTimeout(() => {
+          loadExamsAndStats();
+        }, 3000);
+
+      } catch (error) {
+        showAlert('Error submitting exam: ' + error.message, 'error');
+      }
+    }
+
+    function showExamResults(exam, percentage, score, status) {
+      document.getElementById('examSection').innerHTML = `
+        <div class="result-summary ${status.toLowerCase()}">
+          <h2>🎉 Exam Completed!</h2>
+          <div class="result-score">
+            <h3>Your Score: ${percentage}%</h3>
+            <p>${score} out of ${exam.questions.length} questions correct</p>
+          </div>
+          <div class="result-status ${status.toLowerCase()}">
+            <strong>Status: ${status}</strong>
+          </div>
+          <div class="result-actions">
+            <button class="btn-primary" onclick="location.reload()">Back to Dashboard</button>
+            <button class="btn-secondary" onclick="reviewExam('${exam.id}')">Review Answers</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // =============================================
+    // REVIEW EXAM FUNCTION (FIXED VERSION)
+    // =============================================
+    async function reviewExam(examId) {
+      try {
+        // Get the exam details
+        const examDoc = await db.collection('exams').doc(examId).get();
+        if (!examDoc.exists) {
+          showAlert('Exam not found!', 'error');
+          return;
+        }
+
+        const exam = { id: examDoc.id, ...examDoc.data() };
+        
+        // Get the student's result for this exam
+        const resultsSnapshot = await db.collection('results')
+          .where('studentUsername', '==', currentUser.username)
+          .where('examId', '==', examId)
+          .get();
+        
+        if (resultsSnapshot.empty) {
+          showAlert('No submission found for this exam!', 'error');
+          return;
+        }
+
+        const result = resultsSnapshot.docs[0].data();
+        
+        // Show detailed review
+        showDetailedReview(exam, result);
+        
+      } catch (error) {
+        console.error('Error reviewing exam:', error);
+        showAlert('Error loading exam review: ' + error.message, 'error');
+      }
+    }
+
+    function showDetailedReview(exam, result) {
+      let reviewHTML = `
+        <div class="review-header">
+          <h2>📊 Exam Review: ${exam.title}</h2>
+          <button class="btn-secondary" onclick="hideReview()">Back to Dashboard</button>
+        </div>
+        <div class="review-summary">
+          <div class="score-card">
+            <h3>Your Score: ${result.score}%</h3>
+            <p>${result.correct} out of ${result.total} questions correct</p>
+            <div class="status-badge ${result.status.toLowerCase()}">${result.status}</div>
+          </div>
+        </div>
+        <div class="questions-review">
+          <h3>Question Breakdown</h3>
+      `;
+
+      exam.questions.forEach((question, index) => {
+        const studentAnswer = result.answers[index] || 'Not answered';
+        const isCorrect = studentAnswer === question.answer;
+        
+        reviewHTML += `
+          <div class="review-question ${isCorrect ? 'correct' : 'incorrect'}">
+            <div class="question-header">
+              <h4>Question ${index + 1}</h4>
+              <span class="answer-status ${isCorrect ? 'correct' : 'incorrect'}">
+                ${isCorrect ? '✓ Correct' : '✗ Incorrect'}
+              </span>
+            </div>
+            <div class="question-text">
+              <strong>Question:</strong> ${question.question}
+            </div>
+            <div class="options-review">
+              <strong>Options:</strong>
+              <div class="options-grid">
+                ${question.options.map(option => {
+                  let optionClass = 'option-item';
+                  let label = '';
+                  
+                  if (option === question.answer) {
+                    optionClass += ' correct-answer';
+                    label = ' (Correct Answer)';
+                  }
+                  if (option === studentAnswer && !isCorrect) {
+                    optionClass += ' wrong-answer';
+                    label = ' (Your Wrong Answer)';
+                  }
+                  if (option === studentAnswer && isCorrect) {
+                    optionClass += ' correct-answer';
+                    label = ' (Your Correct Answer)';
+                  }
+                  
+                  return `<div class="${optionClass}">${option}${label}</div>`;
+                }).join('')}
+              </div>
+            </div>
+            <div class="student-answer">
+              <strong>Your Answer:</strong> ${studentAnswer}
+            </div>
+            ${!isCorrect ? `
+            <div class="correct-answer-display">
+              <strong>Correct Answer:</strong> ${question.answer}
+            </div>
+            ` : ''}
+          </div>
+        `;
+      });
+
+      reviewHTML += `
+        </div>
+        <div class="review-actions">
+          <button class="btn-primary" onclick="hideReview()">Back to Dashboard</button>
+        </div>
+      `;
+
+      document.getElementById('reviewSection').innerHTML = reviewHTML;
+      document.getElementById('reviewSection').style.display = 'block';
+      document.getElementById('reviewSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideReview() {
+      document.getElementById('reviewSection').style.display = 'none';
+      document.getElementById('reviewSection').innerHTML = '';
+    }
+
+    // =============================================
+    // UTILITY FUNCTIONS
+    // =============================================
+    function showAlert(message, type = 'error') {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type}`;
+      alertDiv.textContent = message;
+      alertDiv.style.cssText = `
+        padding: 12px 16px;
+        margin: 1rem 0;
+        border-radius: 6px;
+        font-weight: 500;
+        background: ${type === 'success' ? '#d4edda' : '#f8d7da'};
+        color: ${type === 'success' ? '#155724' : '#721c24'};
+        border: 1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'};
+      `;
+      
+      const dashboardHeader = document.querySelector('.dashboard-header');
+      dashboardHeader.parentNode.insertBefore(alertDiv, dashboardHeader.nextSibling);
+      
+      setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    function setupHamburgerMenu() {
+      document.querySelector('.hamburger-btn').addEventListener('click', function() {
+        const navMenu = document.querySelector('.nav-menu');
+        navMenu.classList.toggle('active');
+      });
+    }
+
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        auth.signOut();
+        localStorage.removeItem('currentUser');
+        window.location.href = 'index.html';
+      }
+    }
+
+    // Make functions global
+    window.startExam = startExam;
+    window.reviewExam = reviewExam;
+    window.hideReview = hideReview;
+    window.logout = logout;
+
+  </script>
+
+  <style>
+    .profile-avatar-large {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: bold;
+      color: white;
+      margin: 0 auto 1rem;
+    }
+
+    .profile-details {
+      text-align: left;
+    }
+
+    .profile-details p {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-card h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .stat-card p {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    .exams-grid {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .exam-card {
+      border: 1px solid #e1e5e9;
+      padding: 1.5rem;
+      border-radius: 8px;
+      background: white;
+    }
+
+    .exam-card.available {
+      border-left: 4px solid #28a745;
+    }
+
+    .exam-card.completed {
+      border-left: 4px solid #6c757d;
+    }
+
+    .exam-details {
+      margin: 1rem 0;
+    }
+
+    .exam-details p {
+      margin: 0.25rem 0;
+      font-size: 0.9rem;
+    }
+
+    .exam-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .status-badge.available {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge.completed {
+      background: #e2e3e5;
+      color: #383d41;
+    }
+
+    .status-badge.passed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge.failed {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .result-item {
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 4px solid;
+    }
+
+    .result-item.passed {
+      background: #d4edda;
+      border-left-color: #28a745;
+    }
+
+    .result-item.failed {
+      background: #f8d7da;
+      border-left-color: #dc3545;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .score {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .score.passed {
+      background: #28a745;
+      color: white;
+    }
+
+    .score.failed {
+      background: #dc3545;
+      color: white;
+    }
+
+    .result-details {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-stats {
+      font-size: 0.9rem;
+      color: #555;
+    }
+
+    .result-actions {
+      margin-top: 0.5rem;
+    }
+
+    .btn-small {
+      padding: 0.25rem 0.75rem;
+      font-size: 0.8rem;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-small:hover {
+      background: #5a6268;
+    }
+
+    /* Exam Styles */
+    .question-block {
+      margin: 2rem 0;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .options-list {
+      margin-top: 1rem;
+    }
+
+    .option-label {
+      display: block;
+      padding: 1rem;
+      margin: 0.5rem 0;
+      background: white;
+      border: 2px solid #e1e5e9;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .option-label:hover {
+      border-color: #667eea;
+      background: #f8f9fa;
+    }
+
+    .option-label input {
+      margin-right: 1rem;
+    }
+
+    .timer {
+      background: #dc3545;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: bold;
+      display: inline-block;
+      margin: 1rem 0;
+    }
+
+    .result-summary {
+      padding: 2rem;
+      border-radius: 8px;
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    .result-summary.passed {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+    }
+
+    .result-summary.failed {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+    }
+
+    .result-score h3 {
+      font-size: 2rem;
+      margin: 1rem 0;
+      color: #333;
+    }
+
+    .result-actions {
+      margin-top: 1.5rem;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    /* Review Styles */
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e1e8ed;
+    }
+
+    .review-summary {
+      margin-bottom: 2rem;
+    }
+
+    .score-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .score-card h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 2rem;
+    }
+
+    .questions-review {
+      margin: 2rem 0;
+    }
+
+    .questions-review h3 {
+      margin-bottom: 1rem;
+      color: #2c3e50;
+      border-bottom: 2px solid #e1e8ed;
+      padding-bottom: 0.5rem;
+    }
+
+    .review-question {
+      border: 1px solid #e1e8ed;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      background: white;
+    }
+
+    .review-question.correct {
+      border-left: 4px solid #28a745;
+    }
+
+    .review-question.incorrect {
+      border-left: 4px solid #dc3545;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .question-header h4 {
+      margin: 0;
+      color: #2c3e50;
+    }
+
+    .answer-status {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .answer-status.correct {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .answer-status.incorrect {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .question-text {
+      margin-bottom: 1rem;
+      font-weight: bold;
+      line-height: 1.5;
+    }
+
+    .options-review {
+      margin-bottom: 1rem;
+    }
+
+    .options-review strong {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #2c3e50;
+    }
+
+    .options-grid {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .option-item {
+      padding: 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #dee2e6;
+      background: white;
+      line-height: 1.4;
+    }
+
+    .option-item.correct-answer {
+      background: #d4edda;
+      border-color: #28a745;
+      font-weight: bold;
+      color: #155724;
+    }
+
+    .option-item.wrong-answer {
+      background: #f8d7da;
+      border-color: #dc3545;
+      font-weight: bold;
+      color: #721c24;
+    }
+
+    .student-answer {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: #e9ecef;
+      border-radius: 6px;
+      border-left: 4px solid #007bff;
+    }
+
+    .student-answer strong {
+      color: #2c3e50;
+    }
+
+    .correct-answer-display {
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      background: #d4edda;
+      border-radius: 6px;
+      border-left: 4px solid #28a745;
+    }
+
+    .correct-answer-display strong {
+      color: #155724;
+    }
+
+    .review-actions {
+      margin-top: 2rem;
+      text-align: center;
+    }
+
+    .loading, .no-exams, .no-results {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+      font-style: italic;
+    }
+
+    .no-exams, .no-results {
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e1e5e9;
+    }
+
+    @media (max-width: 768px) {
+      .exam-status {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+      }
+      
+      .result-details {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      .result-actions {
+        flex-direction: column;
+      }
+      
+      .review-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+    }
+  </style>
+</body>
+</html>

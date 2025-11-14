@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examiner Dashboard - LIMKOKWING UNIVERSITY</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 10px;
+      padding: 0;
+      width: 90%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+      background: #2c3e50;
+      color: white;
+      padding: 1.5rem;
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 2rem;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .info-item strong {
+      margin-bottom: 0.25rem;
+      color: #2c3e50;
+    }
+
+    .score-badge {
+      background: #28a745;
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-weight: bold;
+    }
+
+    .questions-review {
+      margin: 2rem 0;
+    }
+
+    .questions-review h3 {
+      margin-bottom: 1rem;
+      color: #2c3e50;
+      border-bottom: 2px solid #e1e8ed;
+      padding-bottom: 0.5rem;
+    }
+
+    .question-review {
+      border: 1px solid #e1e8ed;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      background: white;
+    }
+
+    .question-review.correct {
+      border-left: 4px solid #28a745;
+    }
+
+    .question-review.incorrect {
+      border-left: 4px solid #dc3545;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .question-header h4 {
+      margin: 0;
+      color: #2c3e50;
+    }
+
+    .answer-status {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .answer-status.correct {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .answer-status.incorrect {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .question-text {
+      margin-bottom: 1rem;
+      font-weight: bold;
+      line-height: 1.5;
+    }
+
+    .options-review {
+      margin-bottom: 1rem;
+    }
+
+    .options-review strong {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #2c3e50;
+    }
+
+    .options-grid {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .option-item {
+      padding: 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #dee2e6;
+      background: white;
+      line-height: 1.4;
+    }
+
+    .option-item.correct-answer {
+      background: #d4edda;
+      border-color: #28a745;
+      font-weight: bold;
+      color: #155724;
+    }
+
+    .option-item.wrong-answer {
+      background: #f8d7da;
+      border-color: #dc3545;
+      font-weight: bold;
+      color: #721c24;
+    }
+
+    .student-answer {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: #e9ecef;
+      border-radius: 6px;
+      border-left: 4px solid #007bff;
+    }
+
+    .student-answer strong {
+      color: #2c3e50;
+    }
+
+    .correct-answer-display {
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      background: #d4edda;
+      border-radius: 6px;
+      border-left: 4px solid #28a745;
+    }
+
+    .correct-answer-display strong {
+      color: #155724;
+    }
+
+    .submission-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e1e8ed;
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 768px) {
+      .modal-content {
+        width: 95%;
+        margin: 1rem;
+      }
+      
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .question-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+      
+      .submission-actions {
+        flex-direction: column;
+      }
+    }
+
+    /* Alert Styles */
+    .custom-alert {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      border-radius: 5px;
+      color: white;
+      font-weight: bold;
+      z-index: 1000;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: slideIn 0.3s ease;
+    }
+
+    .alert-success {
+      background-color: #28a745;
+    }
+
+    .alert-error {
+      background-color: #dc3545;
+    }
+
+    .alert-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alert-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+        <div class="header-top">
+            <div class="logo">
+                <div class="logo-box">
+                    <span>LUCT</span>
+                </div>
+                <div class="logo-text">
+                    <h1>LIMKOKWING UNIVERSITY</h1>
+                    <p>OF CREATIVE TECHNOLOGY - LESOTHO</p>
+                </div>
+            </div>
+            <div class="header-info">
+                <p><a href="contact.html">Contact Us</a></p>
+            </div>
+            
+            <!-- Hamburger Button -->
+            <button class="hamburger-btn" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        
+        <nav>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="examiner-dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="examiner-profile.html">My Profile</a></li>
+                <li><a href="#" onclick="logout()">Logout</a></li>
+            </ul>
+        </nav>
+    </div>
+  </header>
+
+  <!-- Examiner Dashboard -->
+  <section class="dashboard">
+    <div class="container">
+      <div class="dashboard-header">
+        <h1 id="examinerWelcome">Examiner Dashboard</h1>
+        <p id="examinerSubjectInfo">Create and manage examinations for your subject</p>
+      </div>
+
+      <div class="dashboard-content">
+        <!-- Quick Stats -->
+        <div class="card">
+          <h2>📊 Quick Overview</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>Your Exams</h3>
+              <p id="totalExams">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Total Submissions</h3>
+              <p id="totalSubmissions">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Average Score</h3>
+              <p id="averageScore">0%</p>
+            </div>
+            <div class="stat-card">
+              <h3>Pass Rate</h3>
+              <p id="passRate">0%</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create New Exam -->
+        <div class="card">
+          <h2>➕ Create New Exam</h2>
+          <form class="exam-form" id="examForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="title">Exam Title:</label>
+                <input type="text" id="title" required placeholder="e.g., Final Examination">
+              </div>
+              <div class="form-group">
+                <label for="date">Exam Date:</label>
+                <input type="date" id="date" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="duration">Duration (minutes):</label>
+                <input type="number" id="duration" required min="5" value="60">
+              </div>
+            </div>
+            
+            <!-- Questions Section -->
+            <div class="questions-section">
+              <h3>📝 Exam Questions</h3>
+              <div id="questionsContainer">
+                <!-- Questions will be added here dynamically -->
+              </div>
+              <button type="button" id="addQuestion" class="btn-secondary">➕ Add Question</button>
+            </div>
+
+            <button type="submit" class="btn-primary">🚀 Create Exam</button>
+          </form>
+        </div>
+
+        <!-- Manage Exams -->
+        <div class="card">
+          <h2>📋 Your Exams</h2>
+          <div class="table-container">
+            <table class="exam-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Date</th>
+                  <th>Duration</th>
+                  <th>Questions</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="examTableBody">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2rem;">No exams created yet</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Student Submissions -->
+        <div class="card">
+          <h2>📊 Student Submissions</h2>
+          <div class="table-container">
+            <table class="exam-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Exam Title</th>
+                  <th>Score</th>
+                  <th>Correct/Total</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="submissionsBody">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2rem;">No student submissions yet</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-footer">
+        <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // =============================================
+    // FIREBASE CONFIGURATION
+    // =============================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBe857kGYoLQJxmLFpUcPS8jZtWxkFYBlk",
+      authDomain: "onlineexam-99eb5.firebaseapp.com",
+      projectId: "onlineexam-99eb5",
+      storageBucket: "onlineexam-99eb5.firebasestorage.app",
+      messagingSenderId: "474888464500",
+      appId: "1:474888464500:web:7414d4dbd34e4a88898921"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+
+    // =============================================
+    // AUTHENTICATION CHECK
+    // =============================================
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        if (!currentUser) {
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          if (userDoc.exists) {
+            currentUser = { uid: user.uid, ...userDoc.data() };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            loadExaminerDashboard();
+          }
+        } else {
+          loadExaminerDashboard();
+        }
+      } else {
+        window.location.href = 'examiner.html';
+      }
+    });
+
+    // =============================================
+    // DASHBOARD FUNCTIONS
+    // =============================================
+    function loadExaminerDashboard() {
+      if (!currentUser) return;
+
+      // Update welcome message
+      document.getElementById('examinerWelcome').textContent = `Welcome, ${currentUser.name || currentUser.username}`;
+      document.getElementById('examinerSubjectInfo').textContent = `Subject: ${formatSubject(currentUser.subject)} - Create and manage examinations`;
+
+      // Initialize exam creation form
+      initializeExamForm();
+      
+      // Load exams and submissions
+      loadExaminerExams();
+      loadStudentSubmissions();
+      loadQuickStats();
+
+      // Setup hamburger menu
+      setupHamburgerMenu();
+    }
+
+    function initializeExamForm() {
+      // Add first question automatically
+      addQuestion();
+
+      // Add question button
+      document.getElementById('addQuestion').addEventListener('click', addQuestion);
+
+      // Form submission
+      document.getElementById('examForm').addEventListener('submit', createExam);
+    }
+
+    function addQuestion() {
+      const questionsContainer = document.getElementById('questionsContainer');
+      const questionCount = questionsContainer.children.length + 1;
+      
+      const questionHTML = `
+        <div class="question-block" data-index="${questionCount}">
+          <h4>Question ${questionCount}</h4>
+          <div class="form-group">
+            <label>Question Text:</label>
+            <textarea class="question-text" placeholder="Enter your question here..." required></textarea>
+          </div>
+          <div class="options-group">
+            <label>Options (at least 2 required):</label>
+            <input type="text" class="option" placeholder="Option 1" required>
+            <input type="text" class="option" placeholder="Option 2" required>
+            <input type="text" class="option" placeholder="Option 3">
+            <input type="text" class="option" placeholder="Option 4">
+          </div>
+          <div class="form-group">
+            <label>Correct Answer:</label>
+            <select class="correct-answer" required>
+              <option value="">Select correct answer</option>
+              <option value="0">Option 1</option>
+              <option value="1">Option 2</option>
+              <option value="2">Option 3</option>
+              <option value="3">Option 4</option>
+            </select>
+          </div>
+          <button type="button" class="remove-question btn-danger" onclick="removeQuestion(this)">Remove Question</button>
+        </div>
+      `;
+      
+      questionsContainer.insertAdjacentHTML('beforeend', questionHTML);
+    }
+
+    function removeQuestion(button) {
+      const questionBlock = button.closest('.question-block');
+      questionBlock.remove();
+      updateQuestionNumbers();
+    }
+
+    function updateQuestionNumbers() {
+      const questions = document.querySelectorAll('.question-block');
+      questions.forEach((question, index) => {
+        const header = question.querySelector('h4');
+        header.textContent = `Question ${index + 1}`;
+        question.setAttribute('data-index', index + 1);
+      });
+    }
+
+    async function createExam(e) {
+      e.preventDefault();
+
+      const title = document.getElementById('title').value;
+      const date = document.getElementById('date').value;
+      const duration = parseInt(document.getElementById('duration').value);
+      
+      const questionBlocks = document.querySelectorAll('.question-block');
+      const questions = [];
+      
+      // Validate and collect questions
+      for (const block of questionBlocks) {
+        const questionText = block.querySelector('.question-text').value;
+        const optionInputs = block.querySelectorAll('.option');
+        const correctAnswer = block.querySelector('.correct-answer').value;
+        
+        const options = [];
+        optionInputs.forEach(input => {
+          if (input.value.trim() !== '') {
+            options.push(input.value);
+          }
+        });
+        
+        // Validation
+        if (!questionText.trim()) {
+          showAlert('Please fill in all question texts', 'error');
+          return;
+        }
+        
+        if (options.length < 2) {
+          showAlert('Each question must have at least 2 options', 'error');
+          return;
+        }
+        
+        if (correctAnswer === '') {
+          showAlert('Please select the correct answer for each question', 'error');
+          return;
+        }
+
+        questions.push({
+          question: questionText,
+          options: options,
+          answer: options[parseInt(correctAnswer)]
+        });
+      }
+      
+      if (questions.length === 0) {
+        showAlert('Please add at least one question', 'error');
+        return;
+      }
+
+      try {
+        // Create exam in Firebase
+        await db.collection('exams').add({
+          subject: currentUser.subject,
+          title: title,
+          date: date,
+          duration: duration,
+          questions: questions,
+          examiner: currentUser.username,
+          examinerId: currentUser.uid,
+          isActive: true,
+          createdDate: new Date().toISOString()
+        });
+
+        showAlert('Exam created successfully! Students can now see this exam.', 'success');
+        
+        // Reset form
+        document.getElementById('examForm').reset();
+        document.getElementById('questionsContainer').innerHTML = '';
+        addQuestion();
+        
+        // Reload exams list
+        loadExaminerExams();
+        loadQuickStats();
+
+      } catch (error) {
+        console.error('Error creating exam:', error);
+        showAlert('Error creating exam: ' + error.message, 'error');
+      }
+    }
+
+    async function loadExaminerExams() {
+      try {
+        const snapshot = await db.collection('exams')
+          .where('examinerId', '==', currentUser.uid)
+          .get();
+        
+        const exams = [];
+        snapshot.forEach(doc => {
+          exams.push({ id: doc.id, ...doc.data() });
+        });
+
+        displayExams(exams);
+      } catch (error) {
+        console.error('Error loading exams:', error);
+        showAlert('Error loading exams', 'error');
+      }
+    }
+
+    function displayExams(exams) {
+      const examTableBody = document.getElementById('examTableBody');
+      
+      if (exams.length === 0) {
+        examTableBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 2rem;">
+              No exams created yet. Create your first exam above!
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      exams.forEach((exam, index) => {
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td><strong>${exam.title}</strong></td>
+            <td>${exam.date}</td>
+            <td>${exam.duration} min</td>
+            <td>${exam.questions.length}</td>
+            <td>
+              <span class="status-badge ${exam.isActive ? 'active' : 'inactive'}">
+                ${exam.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </td>
+            <td>
+              <button class="btn-secondary" onclick="viewExam('${exam.id}')">View</button>
+              <button class="btn-danger" onclick="deleteExam('${exam.id}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+      
+      examTableBody.innerHTML = html;
+    }
+
+    async function loadStudentSubmissions() {
+      try {
+        const snapshot = await db.collection('results')
+          .where('subject', '==', currentUser.subject)
+          .get();
+        
+        const submissions = [];
+        snapshot.forEach(doc => {
+          submissions.push({ id: doc.id, ...doc.data() });
+        });
+
+        displaySubmissions(submissions);
+      } catch (error) {
+        console.error('Error loading submissions:', error);
+        showAlert('Error loading submissions', 'error');
+      }
+    }
+
+    async function displaySubmissions(submissions) {
+      const submissionsBody = document.getElementById('submissionsBody');
+      
+      if (submissions.length === 0) {
+        submissionsBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 2rem;">
+              No student submissions yet. Students will appear here when they take your exams.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      for (const submission of submissions) {
+        // Get student details
+        const studentSnapshot = await db.collection('users')
+          .where('username', '==', submission.studentUsername)
+          .limit(1)
+          .get();
+        
+        let studentName = submission.studentUsername;
+        
+        if (!studentSnapshot.empty) {
+          const studentData = studentSnapshot.docs[0].data();
+          studentName = studentData.name || studentData.username;
+        }
+
+        html += `
+          <tr>
+            <td>${studentName}</td>
+            <td>${submission.title}</td>
+            <td>${submission.score}%</td>
+            <td>${submission.correct}/${submission.total}</td>
+            <td>
+              <span class="status-badge ${submission.status.toLowerCase()}">
+                ${submission.status}
+              </span>
+            </td>
+            <td>${submission.date}</td>
+            <td>
+              <button class="btn-secondary" onclick="viewSubmission('${submission.id}')">Details</button>
+            </td>
+          </tr>
+        `;
+      }
+      
+      submissionsBody.innerHTML = html;
+    }
+
+    async function loadQuickStats() {
+      try {
+        // Get examiner's exams
+        const examsSnapshot = await db.collection('exams')
+          .where('examinerId', '==', currentUser.uid)
+          .get();
+        
+        // Get submissions for examiner's subject
+        const submissionsSnapshot = await db.collection('results')
+          .where('subject', '==', currentUser.subject)
+          .get();
+        
+        const totalExams = examsSnapshot.size;
+        const totalSubmissions = submissionsSnapshot.size;
+        
+        // Calculate average score and pass rate
+        let totalScore = 0;
+        let passedSubmissions = 0;
+        
+        submissionsSnapshot.forEach(doc => {
+          const submission = doc.data();
+          totalScore += submission.score;
+          if (submission.status === 'Passed') {
+            passedSubmissions++;
+          }
+        });
+        
+        const averageScore = totalSubmissions > 0 ? Math.round(totalScore / totalSubmissions) : 0;
+        const passRate = totalSubmissions > 0 ? Math.round((passedSubmissions / totalSubmissions) * 100) : 0;
+
+        // Update stats
+        document.getElementById('totalExams').textContent = totalExams;
+        document.getElementById('totalSubmissions').textContent = totalSubmissions;
+        document.getElementById('averageScore').textContent = averageScore + '%';
+        document.getElementById('passRate').textContent = passRate + '%';
+
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    // =============================================
+    // SUBMISSION VIEWING FUNCTIONS
+    // =============================================
+
+    function viewSubmission(submissionId) {
+      // Show loading state
+      showAlert('Loading submission details...', 'success');
+      
+      // Get submission details from Firestore
+      db.collection('results').doc(submissionId).get()
+        .then(async (doc) => {
+          if (doc.exists) {
+            const submission = doc.data();
+            await showSubmissionDetails(submission, submissionId);
+          } else {
+            showAlert('Submission not found', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading submission:', error);
+          showAlert('Error loading submission details', 'error');
+        });
+    }
+
+    async function showSubmissionDetails(submission, submissionId) {
+      // Get exam details to show questions and correct answers
+      const examSnapshot = await db.collection('exams')
+        .where('title', '==', submission.title)
+        .where('subject', '==', submission.subject)
+        .limit(1)
+        .get();
+      
+      let examData = null;
+      if (!examSnapshot.empty) {
+        examData = examSnapshot.docs[0].data();
+      }
+
+      // Create modal for detailed view
+      const modalHTML = `
+        <div class="modal-overlay" id="submissionModal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>📊 Submission Details</h2>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="submission-info">
+                <div class="info-grid">
+                  <div class="info-item">
+                    <strong>Student:</strong> ${submission.studentUsername}
+                  </div>
+                  <div class="info-item">
+                    <strong>Exam:</strong> ${submission.title}
+                  </div>
+                  <div class="info-item">
+                    <strong>Score:</strong> <span class="score-badge">${submission.score}%</span>
+                  </div>
+                  <div class="info-item">
+                    <strong>Correct Answers:</strong> ${submission.correct}/${submission.total}
+                  </div>
+                  <div class="info-item">
+                    <strong>Status:</strong> <span class="status-badge ${submission.status.toLowerCase()}">${submission.status}</span>
+                  </div>
+                  <div class="info-item">
+                    <strong>Date:</strong> ${submission.date}
+                  </div>
+                </div>
+              </div>
+
+              <div class="questions-review">
+                <h3>📝 Question Review</h3>
+                <div class="questions-list">
+                  ${await generateQuestionsReview(submission, examData)}
+                </div>
+              </div>
+
+              <div class="submission-actions">
+                <button class="btn-secondary" onclick="closeModal()">Close</button>
+                <button class="btn-danger" onclick="deleteSubmission('${submissionId}')">Delete Submission</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Remove existing modal if any
+      const existingModal = document.getElementById('submissionModal');
+      if (existingModal) {
+        existingModal.remove();
+      }
+
+      // Add modal to page
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    async function generateQuestionsReview(submission, examData) {
+      if (!examData || !examData.questions) {
+        return '<p>No exam data available for detailed review.</p>';
+      }
+
+      // Check different possible structures for student answers
+      let studentAnswers = submission.answers || submission.studentAnswers || [];
+      
+      // If answers is not an array or empty, create a placeholder
+      if (!Array.isArray(studentAnswers) || studentAnswers.length === 0) {
+        studentAnswers = new Array(examData.questions.length).fill('No answer provided');
+      }
+
+      let html = '';
+      examData.questions.forEach((question, index) => {
+        const studentAnswer = studentAnswers[index] || 'No answer provided';
+        const isCorrect = studentAnswer === question.answer;
+        
+        html += `
+          <div class="question-review ${isCorrect ? 'correct' : 'incorrect'}">
+            <div class="question-header">
+              <h4>Question ${index + 1}</h4>
+              <span class="answer-status ${isCorrect ? 'correct' : 'incorrect'}">
+                ${isCorrect ? '✓ Correct' : '✗ Incorrect'}
+              </span>
+            </div>
+            <div class="question-text">
+              <strong>Question:</strong> ${question.question}
+            </div>
+            <div class="options-review">
+              <strong>Options:</strong>
+              <div class="options-grid">
+                ${question.options.map((option, optIndex) => {
+                  let optionClass = 'option-item';
+                  let label = '';
+                  
+                  if (option === question.answer) {
+                    optionClass += ' correct-answer';
+                    label = ' (Correct Answer)';
+                  }
+                  if (option === studentAnswer && !isCorrect) {
+                    optionClass += ' wrong-answer';
+                    label = ' (Student\'s Wrong Answer)';
+                  }
+                  if (option === studentAnswer && isCorrect) {
+                    optionClass += ' correct-answer';
+                    label = ' (Student\'s Correct Answer)';
+                  }
+                  
+                  return `<div class="${optionClass}">${option}${label}</div>`;
+                }).join('')}
+              </div>
+            </div>
+            <div class="student-answer">
+              <strong>Student's Answer:</strong> ${studentAnswer}
+            </div>
+            ${!isCorrect ? `
+            <div class="correct-answer-display">
+              <strong>Correct Answer:</strong> ${question.answer}
+            </div>
+            ` : ''}
+          </div>
+        `;
+      });
+
+      return html;
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('submissionModal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+
+    function deleteSubmission(submissionId) {
+      if (confirm('Are you sure you want to delete this submission? This action cannot be undone.')) {
+        db.collection('results').doc(submissionId).delete()
+          .then(() => {
+            showAlert('Submission deleted successfully!', 'success');
+            closeModal();
+            loadStudentSubmissions();
+            loadQuickStats();
+          })
+          .catch(error => {
+            console.error('Error deleting submission:', error);
+            showAlert('Error deleting submission', 'error');
+          });
+      }
+    }
+
+    function viewExam(examId) {
+      showAlert(`View exam functionality for: ${examId}`, 'success');
+      // You can implement detailed exam viewing here
+    }
+
+    function deleteExam(examId) {
+      if (confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
+        db.collection('exams').doc(examId).delete()
+          .then(() => {
+            showAlert('Exam deleted successfully!', 'success');
+            loadExaminerExams();
+            loadQuickStats();
+          })
+          .catch(error => {
+            console.error('Error deleting exam:', error);
+            showAlert('Error deleting exam', 'error');
+          });
+      }
+    }
+
+    function formatSubject(subject) {
+      if (!subject) return 'N/A';
+      return subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase();
+    }
+
+    function showAlert(message, type) {
+      // Remove existing alerts
+      const existingAlert = document.querySelector('.custom-alert');
+      if (existingAlert) {
+        existingAlert.remove();
+      }
+
+      const alert = document.createElement('div');
+      alert.className = `custom-alert alert-${type}`;
+      alert.innerHTML = `
+        <div class="alert-content">
+          <span class="alert-message">${message}</span>
+          <button class="alert-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+      `;
+      
+      document.body.appendChild(alert);
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        if (alert.parentNode) {
+          alert.remove();
+        }
+      }, 5000);
+    }
+
+    function setupHamburgerMenu() {
+      const hamburgerBtn = document.querySelector('.hamburger-btn');
+      const navMenu = document.querySelector('.nav-menu');
+      
+      if (hamburgerBtn && navMenu) {
+        hamburgerBtn.addEventListener('click', () => {
+          navMenu.classList.toggle('active');
+          hamburgerBtn.classList.toggle('active');
+        });
+      }
+    }
+
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        auth.signOut().then(() => {
+          localStorage.removeItem('currentUser');
+          window.location.href = 'examiner.html';
+        }).catch(error => {
+          console.error('Error signing out:', error);
+          showAlert('Error signing out: ' + error.message, 'error');
+        });
+      }
+    }
+
+  </script>
+</body>
+</html>

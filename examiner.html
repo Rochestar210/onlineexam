@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examiner Login - LIMKOKWING UNIVERSITY</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="auth-page">
+  <!-- Header -->
+  <header>
+    <div class="container">
+        <div class="header-top">
+            <div class="logo">
+                <div class="logo-box">
+                    <span>LUCT</span>
+                </div>
+                <div class="logo-text">
+                    <h1>LIMKOKWING UNIVERSITY</h1>
+                    <p>OF CREATIVE TECHNOLOGY - LESOTHO</p>
+                </div>
+            </div>
+            <div class="header-info">
+                <p><a href="index.html">Back to Home</a></p>
+            </div>
+        </div>
+    </div>
+  </header>
+
+  <!-- Auth Section -->
+  <section class="auth-section">
+    <div class="container">
+      <div class="auth-container">
+        <div class="auth-tabs">
+          <button class="tab-btn active" data-tab="login">Examiner Login</button>
+          <button class="tab-btn" data-tab="register">Examiner Registration</button>
+        </div>
+
+        <!-- Login Form -->
+        <div class="auth-form active" id="loginForm">
+          <h2>Welcome Back, Examiner</h2>
+          <p>Sign in to your account</p>
+          
+          <form id="loginFormElement">
+            <div class="form-group">
+              <label for="loginUsername">Username:</label>
+              <input type="text" id="loginUsername" required placeholder="Enter your username">
+            </div>
+            <div class="form-group">
+              <label for="loginPassword">Password:</label>
+              <input type="password" id="loginPassword" required placeholder="Enter your password">
+            </div>
+            <button type="submit" class="btn-primary">🔐 Sign In</button>
+          </form>
+        </div>
+
+        <!-- Registration Form -->
+        <div class="auth-form" id="registerForm">
+          <h2>Join as Examiner</h2>
+          <p>Create your examiner account</p>
+          
+          <form id="registerFormElement">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="regName">Full Name:</label>
+                <input type="text" id="regName" required placeholder="Enter your full name">
+              </div>
+              <div class="form-group">
+                <label for="regUsername">Username:</label>
+                <input type="text" id="regUsername" required placeholder="Choose a username">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="regEmail">Email:</label>
+                <input type="email" id="regEmail" required placeholder="Enter your email">
+              </div>
+              <div class="form-group">
+                <label for="regSubject">Subject:</label>
+                <select id="regSubject" required>
+                  <option value="">Select Subject</option>
+                  <option value="mathematics">Mathematics</option>
+                  <option value="physics">Physics</option>
+                  <option value="chemistry">Chemistry</option>
+                  <option value="biology">Biology</option>
+                  <option value="computer_science">Computer Science</option>
+                  <option value="english">English</option>
+                  <option value="history">History</option>
+                  <option value="geography">Geography</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="regPassword">Password:</label>
+                <input type="password" id="regPassword" required placeholder="Create a password">
+              </div>
+              <div class="form-group">
+                <label for="regConfirmPassword">Confirm Password:</label>
+                <input type="password" id="regConfirmPassword" required placeholder="Confirm your password">
+              </div>
+            </div>
+            <button type="submit" class="btn-primary">🚀 Create Account</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // =============================================
+    // FIREBASE CONFIGURATION
+    // =============================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBe857kGYoLQJxmLFpUcPS8jZtWxkFYBlk",
+      authDomain: "onlineexam-99eb5.firebaseapp.com",
+      projectId: "onlineexam-99eb5",
+      storageBucket: "onlineexam-99eb5.firebasestorage.app",
+      messagingSenderId: "474888464500",
+      appId: "1:474888464500:web:7414d4dbd34e4a88898921"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // =============================================
+    // AUTHENTICATION FUNCTIONS
+    // =============================================
+    document.addEventListener('DOMContentLoaded', function() {
+      // Tab switching
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      const authForms = document.querySelectorAll('.auth-form');
+      
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.getAttribute('data-tab');
+          
+          // Update active tab
+          tabBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          
+          // Show correct form
+          authForms.forEach(form => form.classList.remove('active'));
+          document.getElementById(tab + 'Form').classList.add('active');
+        });
+      });
+
+      // Login form submission
+      document.getElementById('loginFormElement').addEventListener('submit', loginExaminer);
+      
+      // Registration form submission
+      document.getElementById('registerFormElement').addEventListener('submit', registerExaminer);
+    });
+
+    async function loginExaminer(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      if (!username || !password) {
+        showAlert('Please fill in all fields', 'error');
+        return;
+      }
+
+      try {
+        // For simplicity, we'll use email pattern. In real app, you'd have proper username field
+        const email = `${username}@examiner.luct.com`;
+        
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        // Get user data from Firestore
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          
+          // Check if user is an examiner
+          if (userData.role !== 'examiner') {
+            showAlert('Access denied. Examiner accounts only.', 'error');
+            await auth.signOut();
+            return;
+          }
+          
+          // Store user data and redirect
+          localStorage.setItem('currentUser', JSON.stringify({
+            uid: user.uid,
+            ...userData
+          }));
+          
+          showAlert('Login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = 'examiner-dashboard.html';
+          }, 1000);
+        }
+        
+      } catch (error) {
+        console.error('Login error:', error);
+        let errorMessage = 'Login failed. ';
+        
+        switch (error.code) {
+          case 'auth/user-not-found':
+            errorMessage += 'User not found.';
+            break;
+          case 'auth/wrong-password':
+            errorMessage += 'Invalid password.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage += 'Invalid email format.';
+            break;
+          default:
+            errorMessage += error.message;
+        }
+        
+        showAlert(errorMessage, 'error');
+      }
+    }
+
+    async function registerExaminer(e) {
+      e.preventDefault();
+      
+      const name = document.getElementById('regName').value;
+      const username = document.getElementById('regUsername').value;
+      const email = document.getElementById('regEmail').value;
+      const subject = document.getElementById('regSubject').value;
+      const password = document.getElementById('regPassword').value;
+      const confirmPassword = document.getElementById('regConfirmPassword').value;
+      
+      // Validation
+      if (!name || !username || !email || !subject || !password || !confirmPassword) {
+        showAlert('Please fill in all fields', 'error');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        showAlert('Passwords do not match', 'error');
+        return;
+      }
+      
+      if (password.length < 6) {
+        showAlert('Password must be at least 6 characters', 'error');
+        return;
+      }
+
+      try {
+        // Create user in Firebase Auth
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        // Store additional user data in Firestore
+        await db.collection('users').doc(user.uid).set({
+          name: name,
+          username: username,
+          email: email,
+          subject: subject,
+          role: 'examiner',
+          createdAt: new Date().toISOString(),
+          isActive: true
+        });
+        
+        // Store user data locally and redirect
+        localStorage.setItem('currentUser', JSON.stringify({
+          uid: user.uid,
+          name: name,
+          username: username,
+          email: email,
+          subject: subject,
+          role: 'examiner'
+        }));
+        
+        showAlert('Registration successful! Redirecting to dashboard...', 'success');
+        setTimeout(() => {
+          window.location.href = 'examiner-dashboard.html';
+        }, 1500);
+        
+      } catch (error) {
+        console.error('Registration error:', error);
+        let errorMessage = 'Registration failed. ';
+        
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage += 'Email already registered.';
+            break;
+          case 'auth/weak-password':
+            errorMessage += 'Password is too weak.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage += 'Invalid email address.';
+            break;
+          default:
+            errorMessage += error.message;
+        }
+        
+        showAlert(errorMessage, 'error');
+      }
+    }
+
+    function showAlert(message, type) {
+      // Remove existing alerts
+      const existingAlert = document.querySelector('.custom-alert');
+      if (existingAlert) {
+        existingAlert.remove();
+      }
+
+      const alert = document.createElement('div');
+      alert.className = `custom-alert alert-${type}`;
+      alert.innerHTML = `
+        <div class="alert-content">
+          <span class="alert-message">${message}</span>
+          <button class="alert-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+      `;
+      
+      alert.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+        z-index: 1000;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        ${type === 'success' ? 'background-color: #28a745;' : 'background-color: #dc3545;'}
+      `;
+
+      const alertContent = alert.querySelector('.alert-content');
+      alertContent.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      `;
+
+      const alertClose = alert.querySelector('.alert-close');
+      alertClose.style.cssText = `
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        margin-left: 10px;
+      `;
+      
+      document.body.appendChild(alert);
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        if (alert.parentNode) {
+          alert.remove();
+        }
+      }, 5000);
+    }
+
+  </script>
+</body>
+</html>

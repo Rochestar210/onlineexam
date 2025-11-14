@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modules - LIMKOKWING UNIVERSITY</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+        <div class="header-top">
+            <div class="logo">
+                <div class="logo-box">
+                    <span>LUCT</span>
+                </div>
+                <div class="logo-text">
+                    <h1>LIMKOKWING UNIVERSITY</h1>
+                    <p>OF CREATIVE TECHNOLOGY - LESOTHO</p>
+                </div>
+            </div>
+            <div class="header-info">
+                
+                <p><a href="contact.html">Contact Us</a></p>
+            </div>
+            
+            <button class="hamburger-btn" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        
+        <nav>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about.html">About System</a></li>
+                <li><a href="modules.html" class="active">Modules</a></li>
+                <li><a href="admin.html">Admin</a></li>
+                <li><a href="examiner.html">Examiner</a></li>
+                <li><a href="student.html">Student</a></li>
+            </ul>
+        </nav>
+    </div>
+  </header>
+
+  <section class="auth">
+    <div class="container">
+      <div class="auth-container">
+        <div class="form-section">
+          <h2>Course Modules</h2>
+          <div class="modules-list">
+            <div class="module-card">
+              <h3>Web Design</h3>
+              <p>Principles of web design, HTML, CSS, JavaScript and responsive design</p>
+            </div>
+            <div class="module-card">
+              <h3>Business Management</h3>
+              <p>Management principles, organizational behavior, and strategic planning</p>
+            </div>
+            <div class="module-card">
+              <h3>Business Communication</h3>
+              <p>Professional communication skills, report writing, and presentation techniques</p>
+            </div>
+            <div class="module-card">
+              <h3>Algebra & Mathematics</h3>
+              <p>Mathematical concepts, problem solving, and analytical thinking</p>
+            </div>
+            <div class="module-card">
+              <h3>Programming</h3>
+              <p>Programming fundamentals, algorithms, and software development</p>
+            </div>
+            <div class="module-card">
+              <h3>Computer Applications</h3>
+              <p>Software applications, computer skills, and digital literacy</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+  <style>
+    .modules-list {
+      display: grid;
+      gap: 1rem;
+    }
+    .module-card {
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #004080;
+    }
+    .module-card h3 {
+      margin: 0 0 0.5rem 0;
+      color: #004080;
+    }
+    .module-card p {
+      margin: 0;
+      color: #666;
+      line-height: 1.5;
+    }
+  </style>
+</body>
+</html>
